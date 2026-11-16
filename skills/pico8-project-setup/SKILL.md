@@ -9,7 +9,7 @@ Use this skill when the user wants a new, empty PICO-8 project scaffold. Do not 
 
 ## Invocation and workflow
 
-- With one argument, treat the argument as the project name and use `~/dev/<argument>` as the destination. For example, `$pico8-project-setup moon-castle` creates `/Users/vibes/dev/moon-castle` with `PROJECT_NAME=moon-castle`.
+- With one argument, treat the argument as the project name and use `~/dev/pico8-<argument>` as the destination. For example, `$pico8-project-setup moon-castle` creates `/Users/vibes/dev/pico8-moon-castle` with `PROJECT_NAME=moon-castle`.
 - With no argument, ask for both the project name and destination.
 - If the user provides an explicit destination or a different project name, preserve that request and do not apply the one-argument shorthand.
 - The destination must be an existing empty directory or a path that does not exist. Never overwrite an existing non-empty directory.
