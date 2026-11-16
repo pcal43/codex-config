@@ -84,13 +84,16 @@ minify: version
 lint: version
     python3 "$SHRINKO8_SCRIPT" "$GAME_CART" --lint
 
-count: minify
+build: minify
+
+count: build
     python3 "$SHRINKO8_SCRIPT" "$MINIFIED_CART" --count
 
-run: minify
+run:
+    test -f "$MINIFIED_CART" || (echo "Missing $MINIFIED_CART; run 'just build' first."; exit 1)
     "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" -run "$MINIFIED_CART"
 
-release: clean minify
+release: clean build
     "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" "$MINIFIED_CART" -export "$RELEASE_ARTIFACT"
 '''
     project_env = f"""PROJECT_NAME={name}
@@ -126,8 +129,9 @@ build/
 
 - `just minify` builds `build/{name}-min.p8`.
 - `just lint` runs Shrinko8 lint.
-- `just count` reports the minified cart size.
-- `just run` launches the minified cart in PICO-8.
+- `just build` creates the minified cart without launching PICO-8.
+- `just count` reports the built cart size.
+- `just run` launches an already-built cart in PICO-8; run it from the interactive macOS user's session.
 - `just release` exports `build/{name}-{version}.p8.png`.
 
 Keep the cart include order intentional and preserve PICO-8 Lua semantics when editing source.
