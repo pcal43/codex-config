@@ -7,11 +7,14 @@ description: Create a new empty-but-runnable PICO-8 development project with the
 
 Use this skill when the user wants a new, empty PICO-8 project scaffold. Do not use it to copy an existing game's source, assets, historical research, or game-specific tooling.
 
-## Workflow
+## Invocation and workflow
 
-1. Confirm the destination directory and project name. The destination must be an existing empty directory or a path that does not exist. Never overwrite an existing non-empty directory.
-2. Run `scripts/create_project.py <destination>`, passing `--name <name>` when the user has already supplied a name. If no name is supplied, let the script prompt for it. Use the script's default version unless the user requests another version.
-3. Report the created path and the next commands: `just minify`, `just lint`, `just count`, and `just run`.
+- With one argument, treat the argument as the project name and use `~/dev/<argument>` as the destination. For example, `$pico8-project-setup moon-castle` creates `/Users/vibes/dev/moon-castle` with `PROJECT_NAME=moon-castle`.
+- With no argument, ask for both the project name and destination.
+- If the user provides an explicit destination or a different project name, preserve that request and do not apply the one-argument shorthand.
+- The destination must be an existing empty directory or a path that does not exist. Never overwrite an existing non-empty directory.
+- Run `scripts/create_project.py <destination> --name <name>`, using the script's default version unless the user requests another version.
+- Report the created path and the next commands: `just minify`, `just lint`, `just count`, and `just run`.
 
 ## Generated project contract
 
