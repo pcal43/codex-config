@@ -1,0 +1,4 @@
+interface:
+  display_name: "PICO-8 Project Setup"
+  short_description: "Create a generic runnable PICO-8 project scaffold"
+  default_prompt: "Use $pico8-project-setup to set up a new empty PICO-8 development project."
