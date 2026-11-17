@@ -23,6 +23,7 @@ Use this skill when the user wants a new, empty PICO-8 project scaffold. Do not 
 - The cart includes `version.lua` followed by `src/main.lua` and has `_init`, `_update60`, and `_draw` hooks.
 - The starter cart displays a small hello-world message so a successful run is immediately visible.
 - The Justfile provides generic `clean`, `version`, `minify`, `build`, `lint`, `count`, `run`, and `release` recipes. `build` performs headless project-side minification; `run` only launches an already-built cart in PICO-8 and must be run from an interactive macOS user's session.
+- Include the bundled blank 128×128 PICO-8 palette Aseprite sheet, its PNG, and the sprite encoder. `just sprites-edit`, `sprites-export`, `sprites-encode`, and `sprites` provide an explicit first-frame export and full `__gfx__` update; normal builds do not invoke Aseprite. The encoder requires Pillow, rejects non-palette colors and partial transparency, and maps transparent pixels to color 0. `SPRITES_PYTHON` can select a Python command with Pillow; run Aseprite from an interactive macOS session. The lower half of `__gfx__` shares PICO-8 map memory.
 - `build/` and PICO-8 runtime state are generated. In particular, do not create or commit `pico8-home/sdl_controllers.txt`; it is runtime-generated and ignored.
 - Do not initialize Git. The skill creates files only.
 

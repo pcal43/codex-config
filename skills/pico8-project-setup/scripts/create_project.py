@@ -69,13 +69,17 @@ GAME_ROOT := PICO8_CARTS + "/" + PROJECT_NAME
 GAME_CART := GAME_ROOT + "/" + PROJECT_NAME + ".p8"
 MINIFIED_CART := BUILD_DIR + "/" + PROJECT_NAME + "-min.p8"
 RELEASE_ARTIFACT := BUILD_DIR + "/" + PROJECT_NAME + "-" + VERSION + ".p8.png"
+SPRITES_SOURCE := "resources/spritesheet.aseprite"
+SPRITES_PNG := "resources/spritesheet.png"
+ASEPRITE_BIN := if `uname -s` == "Darwin" { "/Applications/Aseprite.app/Contents/MacOS/aseprite" } else { "aseprite" }
+SPRITES_PYTHON := env_var_or_default("SPRITES_PYTHON", "python3")
 
 clean:
     rm -rf "$BUILD_DIR"
 
 version:
     mkdir -p "$GAME_ROOT"
-    echo 'VERSION = "'$VERSION'"' > "$GAME_ROOT/version.lua"
+    printf '%s\n' '--lint: used::VERSION' 'VERSION = "'$VERSION'"' > "$GAME_ROOT/version.lua"
 
 minify: version
     mkdir -p "$BUILD_DIR"
@@ -83,6 +87,17 @@ minify: version
 
 lint: version
     python3 "$SHRINKO8_SCRIPT" "$GAME_CART" --lint
+
+sprites-edit:
+    "{{ASEPRITE_BIN}}" "{{SPRITES_SOURCE}}"
+
+sprites-export:
+    "{{ASEPRITE_BIN}}" -b "{{SPRITES_SOURCE}}" --frame-range 0,0 --save-as "{{SPRITES_PNG}}"
+
+sprites-encode:
+    {{SPRITES_PYTHON}} tools/encode_sprites.py "{{SPRITES_PNG}}" "$GAME_CART"
+
+sprites: sprites-export sprites-encode
 
 build: minify
 
@@ -123,6 +138,7 @@ build/
 - The playable cart is `pico8-home/carts/{name}/{name}.p8`.
 - Lua source lives in `pico8-home/carts/{name}/src/` and is included in explicit order by the cart.
 - `project.env` contains project/version settings and local PICO-8/Shrinko8 paths.
+- `resources/spritesheet.aseprite` is the editable 128×128 sprite sheet; `resources/spritesheet.png` is its exported first frame. `tools/encode_sprites.py` writes the full sprite sheet to the cart's `__gfx__` section, including the lower half shared with map memory.
 - `build/` and `pico8-home/` runtime files are generated; do not edit or commit them as source.
 
 ## Commands
@@ -133,10 +149,12 @@ build/
 - `just count` reports the built cart size.
 - `just run` launches an already-built cart in PICO-8; run it from the interactive macOS user's session.
 - `just release` exports `build/{name}-{version}.p8.png`.
+- `just sprites-edit` opens the Aseprite sheet; `just sprites-export` exports its first frame; `just sprites-encode` encodes the PNG; and `just sprites` runs export and encoding in order. Run Aseprite recipes from an interactive macOS session. Normal builds do not export sprites.
+- Sprite encoding requires Pillow and exact standard PICO-8 palette colors. Fully transparent pixels become color 0; partial transparency and other colors are rejected. Set `SPRITES_PYTHON` to a Python command with Pillow if the default `python3` cannot import it (for example `arch -x86_64 python3` on macOS).
 
 Keep the cart include order intentional and preserve PICO-8 Lua semantics when editing source.
 '''
-    version_lua = f'VERSION = "{shell_quote_lua(version)}"\n'
+    version_lua = f'--lint: used::VERSION\nVERSION = "{shell_quote_lua(version)}"\n'
     return {
         ".gitignore": gitignore,
         "AGENTS.md": agents,
@@ -175,16 +193,24 @@ def main() -> int:
         return 2
 
     files = files_for(name, args.version.strip(), shrinko8_default())
+    assets = Path(__file__).resolve().parent.parent / "assets"
+    asset_files = {
+        "resources/spritesheet.aseprite": (assets / "spritesheet.aseprite").read_bytes(),
+        "resources/spritesheet.png": (assets / "spritesheet.png").read_bytes(),
+        "tools/encode_sprites.py": (assets / "encode_sprites.py").read_bytes(),
+    }
     directories = {destination / "docs", destination / "etc", destination / "resources", destination / "tools"}
     directories.update((destination / path).parent for path in files)
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
     for relative, contents in files.items():
         (destination / relative).write_text(contents, encoding="utf-8")
+    for relative, contents in asset_files.items():
+        (destination / relative).write_bytes(contents)
 
     print(f"Created PICO-8 project: {destination}")
     print(f"Project name: {name}")
-    print("Next: cd into the project and run `just minify` or `just run`.")
+    print("Next: cd into the project and run `just build`, then `just run` from an interactive session.")
     return 0
 
 
