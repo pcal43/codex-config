@@ -14,7 +14,7 @@ Use this skill when the user wants a new, empty PICO-8 project scaffold. Do not 
 - If the user provides an explicit destination or a different project name, preserve that request and do not apply the one-argument shorthand.
 - The destination must be an existing empty directory or a path that does not exist. Never overwrite an existing non-empty directory.
 - Run `scripts/create_project.py <destination> --name <name>`, using the script's default version unless the user requests another version.
-- Report the created path and the next commands: `just build`, `just lint`, `just count`, and, from the interactive macOS user's session, `just run`.
+- Report the created path and next commands: `just build`, `just lint`, `just count`, and, from the interactive macOS user's session, `just run` or `just run-min`.
 
 ## Generated project contract
 
@@ -22,7 +22,7 @@ Use this skill when the user wants a new, empty PICO-8 project scaffold. Do not 
 - The cart is `pico8-home/carts/<project>/<project>.p8`; source is under its `src/` directory.
 - The cart includes `version.lua` followed by `src/main.lua` and has `_init`, `_update60`, and `_draw` hooks.
 - The starter cart displays a small hello-world message so a successful run is immediately visible.
-- The Justfile provides generic `clean`, `version`, `minify`, `build`, `lint`, `count`, `run`, and `release` recipes. `build` performs headless project-side minification; `run` only launches an already-built cart in PICO-8 and must be run from an interactive macOS user's session.
+- The Justfile provides `clean`, `version`, `minify`, `build`, `lint`, and source/minified variants of `count`, `run`, and `release` (`count-min`, `run-min`, `release-min`). `build` prepares `version.lua` and the minified cart. `run` launches the source cart and `run-min` launches the existing minified cart; neither generates files. Run builds as the development user and PICO-8 launches and exports from an interactive macOS session. Rebuild after source changes before `run-min`; regenerate the version after `VERSION` changes. Release artifacts have distinct names, with `-min` for the minified version.
 - Include the bundled blank 128×128 PICO-8 palette Aseprite sheet, its PNG, and the sprite encoder. `just sprites-edit`, `sprites-export`, `sprites-encode`, and `sprites` provide an explicit first-frame export and full `__gfx__` update; normal builds do not invoke Aseprite. The encoder requires Pillow, rejects non-palette colors and partial transparency, and maps transparent pixels to color 0. `SPRITES_PYTHON` can select a Python command with Pillow; run Aseprite from an interactive macOS session. The lower half of `__gfx__` shares PICO-8 map memory.
 - `build/` and PICO-8 runtime state are generated. In particular, do not create or commit `pico8-home/sdl_controllers.txt`; it is runtime-generated and ignored.
 - Do not initialize Git. The skill creates files only.

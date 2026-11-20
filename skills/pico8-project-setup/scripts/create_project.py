@@ -69,6 +69,7 @@ GAME_ROOT := PICO8_CARTS + "/" + PROJECT_NAME
 GAME_CART := GAME_ROOT + "/" + PROJECT_NAME + ".p8"
 MINIFIED_CART := BUILD_DIR + "/" + PROJECT_NAME + "-min.p8"
 RELEASE_ARTIFACT := BUILD_DIR + "/" + PROJECT_NAME + "-" + VERSION + ".p8.png"
+RELEASE_MIN_ARTIFACT := BUILD_DIR + "/" + PROJECT_NAME + "-" + VERSION + "-min.p8.png"
 SPRITES_SOURCE := "resources/spritesheet.aseprite"
 SPRITES_PNG := "resources/spritesheet.png"
 ASEPRITE_BIN := if `uname -s` == "Darwin" { "/Applications/Aseprite.app/Contents/MacOS/aseprite" } else { "aseprite" }
@@ -79,7 +80,7 @@ clean:
 
 version:
     mkdir -p "$GAME_ROOT"
-    printf '%s\n' '--lint: used::VERSION' 'VERSION = "'$VERSION'"' > "$GAME_ROOT/version.lua"
+    if [ -f "$GAME_ROOT/version.lua" ] && [ "$(cat "$GAME_ROOT/version.lua")" = "$(printf '%s\n' '--lint: used::VERSION' 'VERSION = "'$VERSION'"')" ]; then exit 0; fi; printf '%s\n' '--lint: used::VERSION' 'VERSION = "'$VERSION'"' > "$GAME_ROOT/version.lua"
 
 minify: version
     mkdir -p "$BUILD_DIR"
@@ -101,15 +102,27 @@ sprites: sprites-export sprites-encode
 
 build: minify
 
-count: build
+count: version
+    python3 "$SHRINKO8_SCRIPT" "$GAME_CART" --count
+
+count-min: minify
     python3 "$SHRINKO8_SCRIPT" "$MINIFIED_CART" --count
 
 run:
-    test -f "$MINIFIED_CART" || (echo "Missing $MINIFIED_CART; run 'just build' first."; exit 1)
+    test -r "$GAME_ROOT/version.lua" || (echo "Missing version.lua; run 'just version' as the development user first."; exit 1)
+    "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" -run "$GAME_CART"
+
+run-min:
+    test -r "$MINIFIED_CART" || (echo "Missing $MINIFIED_CART; run 'just minify' as the development user first."; exit 1)
     "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" -run "$MINIFIED_CART"
 
-release: clean build
-    "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" "$MINIFIED_CART" -export "$RELEASE_ARTIFACT"
+release: version
+    mkdir -p "$BUILD_DIR"
+    "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" "$GAME_CART" -export "$RELEASE_ARTIFACT"
+
+release-min: minify
+    mkdir -p "$BUILD_DIR"
+    "$PICO8_BIN" -home "$PICO8_HOME" -root_path "$PICO8_CARTS" "$MINIFIED_CART" -export "$RELEASE_MIN_ARTIFACT"
 '''
     project_env = f"""PROJECT_NAME={name}
 VERSION={version}
@@ -145,10 +158,11 @@ build/
 
 - `just minify` builds `build/{name}-min.p8`.
 - `just lint` runs Shrinko8 lint.
-- `just build` creates the minified cart without launching PICO-8.
-- `just count` reports the built cart size.
-- `just run` launches an already-built cart in PICO-8; run it from the interactive macOS user's session.
-- `just release` exports `build/{name}-{version}.p8.png`.
+- `just build` prepares `version.lua` and the minified cart without launching PICO-8; run it as the development user.
+- `just count` reports the source cart size; `just count-min` minifies and reports the minified cart size.
+- `just run` launches the source cart; `just run-min` launches the existing minified cart. Neither generates files. Run `just build` as the development user when needed, then launch from the interactive macOS user's session; rebuild before `run-min` after source changes.
+- `just release` exports the source cart as `build/{name}-{version}.p8.png`; `just release-min` minifies and exports `build/{name}-{version}-min.p8.png`. Run PICO-8 exports from an interactive macOS session and verify source exports by reopening them.
+- The `version` recipe writes `version.lua` only when its contents differ. After changing `VERSION`, regenerate it as the development user before launching the source cart.
 - `just sprites-edit` opens the Aseprite sheet; `just sprites-export` exports its first frame; `just sprites-encode` encodes the PNG; and `just sprites` runs export and encoding in order. Run Aseprite recipes from an interactive macOS session. Normal builds do not export sprites.
 - Sprite encoding requires Pillow and exact standard PICO-8 palette colors. Fully transparent pixels become color 0; partial transparency and other colors are rejected. Set `SPRITES_PYTHON` to a Python command with Pillow if the default `python3` cannot import it (for example `arch -x86_64 python3` on macOS).
 
@@ -210,7 +224,7 @@ def main() -> int:
 
     print(f"Created PICO-8 project: {destination}")
     print(f"Project name: {name}")
-    print("Next: cd into the project and run `just build`, then `just run` from an interactive session.")
+    print("Next: run `just build` as the development user, then `just run` or `just run-min` from an interactive session.")
     return 0
 
 
